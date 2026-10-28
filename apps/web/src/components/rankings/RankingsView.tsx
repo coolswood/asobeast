@@ -6,6 +6,7 @@ import { keywordLabel } from "@asobeast/shared";
 import { X } from "lucide-react";
 import { PrintReportButton } from "@/components/app-detail/PrintReportButton";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { MarketPills } from "@/components/layout/MarketPills";
 import {
   Card,
   CardContent,
@@ -16,6 +17,7 @@ import {
 import {
   annotationsOptions,
   changesOptions,
+  keywordCountriesOptions,
   keywordsOptions,
   rankingsOptions,
 } from "@/lib/queries";
@@ -25,7 +27,11 @@ import {
   RANGE_PRESETS,
   WIDEST_RANGE,
 } from "@/lib/ranges";
-import { keywordIdsParser, rangeParser } from "@/lib/search-params";
+import {
+  countryParser,
+  keywordIdsParser,
+  rangeParser,
+} from "@/lib/search-params";
 import { annotationsInMarkets } from "@/components/annotations/annotation-lines";
 import { MIN_TREND_POINTS } from "@/components/charts/ChartStates";
 import { exportRankings } from "./ranking-csv";
@@ -33,23 +39,26 @@ import { buildRankingChart, MAX_SERIES } from "./pivot";
 import {
   InsufficientHistory,
   NoDataInRange,
+  NoKeywordsInMarket,
   NoKeywordsTracked,
   NoPositionsYet,
 } from "./RankingStates";
 import { KeywordPicker } from "./KeywordPicker";
 import { RangePicker } from "./RangePicker";
 import { RankingChart } from "./RankingChart";
-import { DEFAULT_SELECTION, topByOpportunity } from "./selection";
+import { selectionForMarket } from "./selection";
 
 export function RankingsView({ id }: { id: string }) {
+  const [country, setCountry] = useQueryState("country", countryParser);
   const [range, setRange] = useQueryState("range", rangeParser);
   const [selected, setSelected] = useQueryState("keywords", keywordIdsParser);
   const { data: tracked } = useSuspenseQuery(keywordsOptions(id));
+  const { data: markets } = useSuspenseQuery(keywordCountriesOptions(id));
 
-  const effective =
-    selected.length > 0
-      ? selected
-      : topByOpportunity(tracked, DEFAULT_SELECTION);
+  const scoped = country
+    ? tracked.filter((item) => item.country === country)
+    : tracked;
+  const effective = selectionForMarket(scoped, selected);
 
   const bounds = presetToRange(range);
   const { data } = useSuspenseQuery(
@@ -80,9 +89,21 @@ export function RankingsView({ id }: { id: string }) {
         <CardTitle>Keyword positions over time</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        <div className="print:hidden">
+          <MarketPills
+            markets={markets.map((entry) => ({
+              country: entry.country,
+              count: entry.keywordCount,
+            }))}
+            value={country || null}
+            onChange={(next) => void setCountry(next)}
+            ariaLabel="Report markets"
+            allLabel="All markets"
+          />
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <KeywordPicker
-            tracked={tracked}
+            tracked={scoped}
             value={effective}
             onChange={setSelected}
           />
@@ -124,6 +145,8 @@ export function RankingsView({ id }: { id: string }) {
 
         {tracked.length === 0 ? (
           <NoKeywordsTracked id={id} />
+        ) : scoped.length === 0 && country ? (
+          <NoKeywordsInMarket id={id} country={country} />
         ) : chart.checkedDays === 0 ? (
           everChecked ? (
             <NoDataInRange
