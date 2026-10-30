@@ -6,7 +6,6 @@ import { keywordLabel } from "@asobeast/shared";
 import { X } from "lucide-react";
 import { PrintReportButton } from "@/components/app-detail/PrintReportButton";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
-import { MarketPills } from "@/components/layout/MarketPills";
 import {
   Card,
   CardContent,
@@ -17,7 +16,6 @@ import {
 import {
   annotationsOptions,
   changesOptions,
-  keywordCountriesOptions,
   keywordsOptions,
   rankingsOptions,
 } from "@/lib/queries";
@@ -49,11 +47,10 @@ import { RankingChart } from "./RankingChart";
 import { selectionForMarket } from "./selection";
 
 export function RankingsView({ id }: { id: string }) {
-  const [country, setCountry] = useQueryState("country", countryParser);
+  const [country] = useQueryState("country", countryParser);
   const [range, setRange] = useQueryState("range", rangeParser);
   const [selected, setSelected] = useQueryState("keywords", keywordIdsParser);
   const { data: tracked } = useSuspenseQuery(keywordsOptions(id));
-  const { data: markets } = useSuspenseQuery(keywordCountriesOptions(id));
 
   const scoped = country
     ? tracked.filter((item) => item.country === country)
@@ -89,18 +86,6 @@ export function RankingsView({ id }: { id: string }) {
         <CardTitle>Keyword positions over time</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="print:hidden">
-          <MarketPills
-            markets={markets.map((entry) => ({
-              country: entry.country,
-              count: entry.keywordCount,
-            }))}
-            value={country || null}
-            onChange={(next) => void setCountry(next)}
-            ariaLabel="Report markets"
-            allLabel="All markets"
-          />
-        </div>
         <div className="flex flex-wrap items-center gap-2">
           <KeywordPicker
             tracked={scoped}
