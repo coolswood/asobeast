@@ -475,3 +475,8 @@ Root `.env` (Compose only): `POSTGRES_PASSWORD` and `AUTH_SECRET`, both required
 - No console credential read outside `StoreConnectionService.openAppStore` and `openPlay`, no store report request outside the `store-connect` queue, and no estimate where Apple or Google report nothing.
 - No review reply written outside `ReviewRepliesService` and `ReviewReplyAssistant`, no review translation written outside `ReviewTranslator`, no review reply posted outside `ReviewReplyPoster` or without a person's click, and no AI draft or translation that bypasses `AiGateway`.
 - No comments inside code. DRY, KISS, CLEAN CODE.
+
+## Owner standing rules (all repos, since 2026-11-09)
+
+- **Orchestrator mode**: the main agent session orchestrates; multi-step work (exploration, code changes, tests, scripts, triage) runs in background subagents (Agent tool, `run_in_background: true`), so the owner can keep talking to the session. Independent tasks run in parallel. Relay results faithfully when completion notifications arrive; never fabricate pending results. Direct execution only for micro-operations (a single read/command).
+- **Business logic over code**: default answers to the level of business logic and decisions — what changes for the system/users/data, which alternatives exist, their consequences. Code snippets are illustration, not substance. Technical choices (library, format, command) — decide yourself; surface only what changes business meaning.
